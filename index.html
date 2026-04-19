@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상속세 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #232220;
+    --gold: #c9a84c;
+    --gold-light: #e2c47a;
+    --gold-dim: #7a6530;
+    --text: #e8e2d5;
+    --text-dim: #8a8375;
+    --accent: #c9a84c;
+    --border: #2e2c28;
+    --red: #c94c4c;
+    --green: #4ca87a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif KR', serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,168,76,0.08) 0%, transparent 60%);
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  header .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  header h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  header h1 span {
+    color: var(--gold);
+  }
+
+  header p {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .gold-line {
+    width: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 20px auto;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    .container { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.1s; }
+
+  .card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  label .hint {
+    font-size: 10px;
+    color: var(--gold-dim);
+    margin-left: 4px;
+  }
+
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input:focus, select:focus {
+    border-color: var(--gold-dim);
+  }
+
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .checkbox-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .checkbox-item:hover { border-color: var(--gold-dim); }
+  .checkbox-item.active { border-color: var(--gold); background: rgba(201,168,76,0.07); }
+
+  .checkbox-item input { display: none; }
+
+  .checkbox-dot {
+    width: 14px; height: 14px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--gold);
+    transition: background 0.2s;
+  }
+
+  .checkbox-item.active .checkbox-dot {
+    background: var(--gold);
+    color: var(--bg);
+  }
+
+  .checkbox-item span {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .checkbox-item.active span { color: var(--text); }
+
+  .section-divider {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin: 20px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .btn-calc {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    color: var(--bg);
+    font-family: 'Noto Serif KR', serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-calc:hover { opacity: 0.9; }
+  .btn-calc:active { transform: scale(0.99); }
+
+  /* Result panel */
+  .result-panel {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    padding: 28px;
+    display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .result-panel.show { display: block; }
+
+  .result-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .result-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px 16px;
+  }
+
+  .result-item .r-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .result-item .r-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--gold-light);
+    font-weight: 500;
+  }
+
+  .result-item .r-value.highlight {
+    font-size: 22px;
+    color: var(--gold);
+  }
+
+  .result-item .r-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  .breakdown {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .breakdown-row:last-child { border-bottom: none; }
+
+  .breakdown-row:nth-child(even) { background: var(--surface2); }
+
+  .breakdown-row .b-label { color: var(--text-dim); }
+
+  .breakdown-row .b-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .breakdown-row.total {
+    background: rgba(201,168,76,0.06);
+    border-top: 1px solid var(--gold-dim);
+  }
+
+  .breakdown-row.total .b-label { color: var(--gold); font-weight: 600; }
+  .breakdown-row.total .b-value { color: var(--gold); font-size: 14px; }
+
+  .breakdown-row.deduct .b-value { color: var(--green); }
+
+  .note-box {
+    margin-top: 16px;
+    background: rgba(201,168,76,0.04);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 3px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .note-box strong { color: var(--gold-dim); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Korea Inheritance Tax</div>
+  <h1>상속세 <span>계산기</span></h1>
+  <div class="gold-line"></div>
+  <p>2024년 기준 | 개략적 추정치이며 법적 효력이 없습니다</p>
+</header>
+
+<div class="container">
+
+  <!-- 입력 카드 1: 재산 -->
+  <div class="card" style="animation-delay:0.05s">
+    <div class="card-title">① 상속 재산</div>
+
+    <div class="field">
+      <label>총 상속 재산 <span class="hint">(만원)</span></label>
+      <input type="number" id="totalAsset" placeholder="예: 500000" oninput="formatHint(this,'assetHint')">
+      <div style="font-size:11px;color:var(--gold-dim);margin-top:4px;" id="assetHint"></div>
+    </div>
+
+    <div class="field">
+      <label>사전 증여 재산 <span class="hint">(상속개시 10년 이내, 만원)</span></label>
+      <input type="number" id="giftAsset" placeholder="예: 0" oninput="formatHint(this,'giftHint')">
+      <div style="font-size:11px;color:var(--gold-dim);margin-top:4px;" id="giftHint"></div>
+    </div>
+
+    <div class="field">
+      <label>채무 / 공과금 <span class="hint">(만원)</span></label>
+      <input type="number" id="debt" placeholder="예: 0" oninput="formatHint(this,'debtHint')">
+      <div style="font-size:11px;color:var(--gold-dim);margin-top:4px;" id="debtHint"></div>
+    </div>
+
+    <div class="field">
+      <label>장례 비용 <span class="hint">(만원, 최대 1,500)</span></label>
+      <input type="number" id="funeral" placeholder="예: 500">
+    </div>
+  </div>
+
+  <!-- 입력 카드 2: 가족 -->
+  <div class="card" style="animation-delay:0.1s">
+    <div class="card-title">② 상속인 정보</div>
+
+    <div class="field">
+      <label>피상속인 유형</label>
+      <select id="decedentType">
+        <option value="general">일반 (거주자)</option>
+        <option value="nonresident">비거주자</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>배우자 여부</label>
+      <select id="spouseExist">
+        <option value="yes">있음</option>
+        <option value="no">없음</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>자녀 수</label>
+      <input type="number" id="childCount" placeholder="예: 2" min="0" value="1">
+    </div>
+
+    <div class="field">
+      <label>자녀 중 미성년자 수</label>
+      <input type="number" id="minorCount" placeholder="예: 0" min="0" value="0">
+    </div>
+
+    <div class="field">
+      <label>자녀 중 장애인 수</label>
+      <input type="number" id="disabledCount" placeholder="예: 0" min="0" value="0">
+    </div>
+
+    <div class="section-divider">추가 공제</div>
+
+    <div class="checkbox-group">
+      <label class="checkbox-item" onclick="toggleCheck(this)">
+        <input type="checkbox" id="chk_home">
+        <div class="checkbox-dot">✓</div>
+        <span>동거주택 상속</span>
+      </label>
+      <label class="checkbox-item" onclick="toggleCheck(this)">
+        <input type="checkbox" id="chk_farm">
+        <div class="checkbox-dot">✓</div>
+        <span>가업 상속</span>
+      </label>
+      <label class="checkbox-item" onclick="toggleCheck(this)">
+        <input type="checkbox" id="chk_fin">
+        <div class="checkbox-dot">✓</div>
+        <span>금융 재산 포함</span>
+      </label>
+      <label class="checkbox-item" onclick="toggleCheck(this)">
+        <input type="checkbox" id="chk_pub">
+        <div class="checkbox-dot">✓</div>
+        <span>공익법인 출연</span>
+      </label>
+    </div>
+
+    <div id="fin_field" class="field" style="display:none;margin-top:14px;">
+      <label>금융 재산 금액 <span class="hint">(만원)</span></label>
+      <input type="number" id="finAsset" placeholder="예: 100000">
+    </div>
+  </div>
+
+  <div style="grid-column:1/-1; text-align:center;">
+    <button class="btn-calc" onclick="calculate()">⬢ 상속세 계산하기</button>
+  </div>
+
+  <!-- 결과 -->
+  <div class="result-panel" id="resultPanel">
+    <div class="result-title">◆ 계산 결과</div>
+
+    <div class="result-grid" id="resultGrid"></div>
+
+    <div class="breakdown" id="breakdownTable"></div>
+
+    <div class="note-box">
+      <strong>※ 유의사항</strong><br>
+      본 계산기는 2024년 기준 개략적 추정치를 제공합니다. 실제 세액은 공동 상속, 증여세액공제, 외국납부세액공제, 신고세액공제(3%) 등에 따라 달라질 수 있습니다. 정확한 세액 산정은 반드시 세무사 또는 국세청에 문의하시기 바랍니다.
+    </div>
+  </div>
+
+</div>
+
+<script>
+function formatHint(el, hintId) {
+  const v = parseFloat(el.value);
+  if (!v || v <= 0) { document.getElementById(hintId).textContent = ''; return; }
+  document.getElementById(hintId).textContent = '≈ ' + formatKorean(v * 10000);
+}
+
+function formatKorean(won) {
+  if (won >= 1e12) return (won/1e12).toFixed(2) + '조';
+  if (won >= 1e8) return (won/1e8).toFixed(2) + '억';
+  if (won >= 1e4) return (won/1e4).toFixed(0) + '만';
+  return won.toLocaleString() + '원';
+}
+
+function formatWon(manwon) {
+  const won = manwon * 10000;
+  if (won >= 1e12) return (won/1e12).toFixed(2) + '조원';
+  if (won >= 1e8) return (won/1e8).toFixed(2) + '억원';
+  return (won/1e4).toFixed(0) + '만원';
+}
+
+function toggleCheck(el) {
+  el.classList.toggle('active');
+  // fin_field toggle
+  if (document.getElementById('chk_fin').closest('.checkbox-item').classList.contains('active')) {
+    document.getElementById('fin_field').style.display = 'block';
+  } else {
+    document.getElementById('fin_field').style.display = 'none';
+  }
+}
+
+function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calculate() {
+  const total = getVal('totalAsset');
+  const gift = getVal('giftAsset');
+  const debt = getVal('debt');
+  let funeral = Math.min(getVal('funeral'), 1500);
+  if (funeral === 0) funeral = 500; // 기본 500
+
+  const hasSpouse = document.getElementById('spouseExist').value === 'yes';
+  const childCount = getVal('childCount');
+  const minorCount = getVal('minorCount');
+  const disabledCount = getVal('disabledCount');
+
+  const chkHome = document.getElementById('chk_home').closest('.checkbox-item').classList.contains('active');
+  const chkFarm = document.getElementById('chk_farm').closest('.checkbox-item').classList.contains('active');
+  const chkFin = document.getElementById('chk_fin').closest('.checkbox-item').classList.contains('active');
+  const finAsset = getVal('finAsset');
+
+  // 1. 과세가액
+  const taxableBase = Math.max(0, total + gift - debt - funeral);
+
+  // 2. 인적공제
+  // 기초공제 2억 (거주자)
+  let basicDeduct = 20000;
+  // 배우자공제 (최소 5억, 최대 30억, 여기서는 법정지분 기준 단순화: 30억 한도에서 배우자 5억 적용)
+  let spouseDeduct = hasSpouse ? Math.min(300000, Math.max(50000, taxableBase * 0.4286)) : 0;
+  // 자녀공제 1인당 5000만
+  let childDeduct = childCount * 5000;
+  // 미성년자 추가공제: (19 - 현재나이) × 1000만 → 단순화: 미성년 1인당 평균 10년 × 1000만 = 1억
+  let minorDeduct = minorCount * 10000;
+  // 장애인 공제: 기대여명 × 1000만 → 단순화: 1인당 평균 30년 = 3억
+  let disabledDeduct = disabledCount * 30000;
+
+  let personalDeduct = basicDeduct + childDeduct + minorDeduct + disabledDeduct;
+  // 일괄공제 vs 인적공제 큰 것 선택 (일괄공제 5억)
+  const lumpDeduct = 50000;
+  const useLump = !hasSpouse || personalDeduct < lumpDeduct;
+  let humanDeduct = useLump ? Math.max(lumpDeduct, personalDeduct) : personalDeduct;
+
+  // 금융재산 공제 (20%, 최대 2억)
+  let finDeduct = 0;
+  if (chkFin && finAsset > 0) {
+    finDeduct = Math.min(finAsset * 0.2, 20000);
+    finDeduct = Math.max(finDeduct, Math.min(finAsset, 2000));
+  }
+
+  // 동거주택 공제 (80%, 최대 6억)
+  let homeDeduct = chkHome ? Math.min(taxableBase * 0.8, 60000) : 0;
+
+  // 가업 상속 공제 (매우 복잡, 단순화: 최대 500억)
+  let farmDeduct = chkFarm ? Math.min(total * 0.9, 5000000) : 0;
+
+  let totalDeduct = spouseDeduct + humanDeduct + finDeduct + homeDeduct + farmDeduct;
+
+  // 3. 과세표준
+  let taxBase = Math.max(0, taxableBase - totalDeduct);
+
+  // 4. 세율 구간 (2024년)
+  // 1억 이하: 10%
+  // 1억~5억: 20%, 누진공제 1000만
+  // 5억~10억: 30%, 누진공제 6000만
+  // 10억~30억: 40%, 누진공제 1억6000만
+  // 30억 초과: 50%, 누진공제 4억6000만
+  let tax = 0;
+  let rate = 0, progressDeduct = 0;
+  if (taxBase <= 10000) { rate = 0.1; progressDeduct = 0; }
+  else if (taxBase <= 50000) { rate = 0.2; progressDeduct = 1000; }
+  else if (taxBase <= 100000) { rate = 0.3; progressDeduct = 6000; }
+  else if (taxBase <= 300000) { rate = 0.4; progressDeduct = 16000; }
+  else { rate = 0.5; progressDeduct = 46000; }
+  tax = Math.max(0, taxBase * rate - progressDeduct);
+
+  // 5. 신고세액공제 3%
+  const reportDiscount = tax * 0.03;
+  const finalTax = Math.max(0, tax - reportDiscount);
+
+  // 실효세율
+  const effRate = total > 0 ? (finalTax / total * 100).toFixed(2) : '0.00';
+
+  // 렌더
+  document.getElementById('resultGrid').innerHTML = `
+    <div class="result-item">
+      <div class="r-label">과세가액</div>
+      <div class="r-value">${formatWon(taxableBase)}</div>
+    </div>
+    <div class="result-item">
+      <div class="r-label">총 공제액</div>
+      <div class="r-value">${formatWon(totalDeduct)}</div>
+      <div class="r-sub">배우자·일괄·기타 합산</div>
+    </div>
+    <div class="result-item">
+      <div class="r-label">과세표준</div>
+      <div class="r-value">${formatWon(taxBase)}</div>
+      <div class="r-sub">세율 ${(rate*100).toFixed(0)}% 구간</div>
+    </div>
+    <div class="result-item">
+      <div class="r-label">납부 예상 세액</div>
+      <div class="r-value highlight">${formatWon(finalTax)}</div>
+      <div class="r-sub">신고공제(3%) 적용 후</div>
+    </div>
+    <div class="result-item">
+      <div class="r-label">실효 세율</div>
+      <div class="r-value">${effRate}%</div>
+      <div class="r-sub">납세액 ÷ 총 상속재산</div>
+    </div>
+  `;
+
+  const rows = [
+    ['총 상속 재산', formatWon(total), false],
+    ['사전 증여 재산 합산', formatWon(gift), false],
+    ['채무 · 공과금 차감', '− ' + formatWon(debt), true],
+    ['장례비 차감', '− ' + formatWon(funeral), true],
+    ['과세가액', formatWon(taxableBase), false, true],
+    hasSpouse ? ['배우자 공제', '− ' + formatWon(spouseDeduct), true] : null,
+    [useLump ? '일괄공제 (5억)' : '인적공제', '− ' + formatWon(humanDeduct), true],
+    finDeduct > 0 ? ['금융재산 공제', '− ' + formatWon(finDeduct), true] : null,
+    homeDeduct > 0 ? ['동거주택 공제', '− ' + formatWon(homeDeduct), true] : null,
+    farmDeduct > 0 ? ['가업 상속 공제', '− ' + formatWon(farmDeduct), true] : null,
+    ['과세표준', formatWon(taxBase), false, true],
+    ['산출세액', formatWon(tax), false],
+    ['신고세액공제 (3%)', '− ' + formatWon(reportDiscount), true],
+    ['최종 납부세액', formatWon(finalTax), false, true, true],
+  ].filter(Boolean);
+
+  document.getElementById('breakdownTable').innerHTML = rows.map(([label, value, isDeduct, isSub, isFinal]) => `
+    <div class="breakdown-row ${isFinal ? 'total' : ''} ${isDeduct ? 'deduct' : ''}">
+      <span class="b-label">${label}</span>
+      <span class="b-value">${value}</span>
+    </div>
+  `).join('');
+
+  const panel = document.getElementById('resultPanel');
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
